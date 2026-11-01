@@ -1,0 +1,21 @@
+{
+  "name": "esdara",
+  "type": "module",
+  "private": true,
+  "license": "AGPL-3.0-or-later",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build && node scripts/check-dist.mjs",
+    "preview": "astro preview",
+    "test": "node --test \"src/**/*.test.ts\""
+  },
+  "dependencies": {
+    "@astrojs/sitemap": "^3.7.4",
+    "astro": "^7.4.4",
+    "sql.js": "^1.15.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ramigb/esdara.git"
+  }
+}

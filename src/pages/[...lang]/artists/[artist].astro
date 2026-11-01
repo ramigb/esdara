@@ -1,0 +1,251 @@
+---
+import { getImage, Image } from 'astro:assets';
+import { getCollection, render } from 'astro:content';
+import Base from '../../../layouts/Base.astro';
+import Cover from '../../../components/Cover.astro';
+import { loadReleases } from '../../../data';
+import { genres } from '../../../genres';
+import { embeds, preferred } from '../../../embed';
+import { country, date, href, langPaths, services, toLang, ui } from '../../../i18n';
+import { editUrl, mailto } from '../../../site';
+
+export async function getStaticPaths() {
+  const [artists, releases, bios] = await Promise.all([getCollection('artists'), loadReleases(), getCollection('artistsEn')]);
+  return langPaths().flatMap(({ params }) =>
+    artists.map((artist) => ({
+      params: { ...params, artist: artist.id },
+      props: {
+        artist,
+        bio: (params.lang === 'en' && bios.find((b) => b.id === artist.id)) || artist,
+        releases: releases.filter((r) => r.artist.id === artist.id),
+      },
+    })),
+  );
+}
+
+const { artist, bio, releases } = Astro.props;
+const lang = toLang(Astro.params.lang);
+const { Content } = await render(bio);
+const { name, photo, links = {} } = artist.data;
+// Services at least one song on this page can be played with, for the "Play with" choice.
+// Search results and link previews: the bio's first paragraph, cut to fit, and the photo as a JPEG (widest support).
+const intro = (bio.body ?? '').trim().split(/\n\s*\n/)[0].replace(/\s+/g, ' ');
+const description = intro.length > 160 ? intro.slice(0, 157).replace(/\s+\S*$/, '') + '…' : intro || undefined;
+const image = photo && new URL((await getImage({ src: photo, width: 480, height: 480, fit: 'cover', format: 'jpg' })).src, Astro.site).href;
+const playable = preferred.filter((p) => releases.some((r) => r.songs.some((s) => embeds(s.data.links).some((e) => e.service === p))));
+---
+
+<Base lang={lang} title={name[lang]} path={`/artists/${artist.id}/`} description={description} image={image}>
+  <section class="hero">
+    {photo && <Image class="photo" src={photo} width={320} height={320} fit="cover" alt="" />}
+    <h1>{name[lang]}</h1>
+    <p class="tags">
+      <a href={href(lang, `/country/${artist.data.country.toLowerCase()}/`)}>{country(lang, artist.data.country)}</a>
+      {artist.data.genres.map((g) => <a href={href(lang, `/genre/${g}/`)}>{genres[g][lang]}</a>)}
+    </p>
+    <div class="bio"><Content /></div>
+    {
+      Object.keys(links).length > 0 && (
+        <p class="links">
+          {Object.entries(links).map(([label, url]) => (
+            <a href={url} rel="noopener">{label}</a>
+          ))}
+        </p>
+      )
+    }
+    <p class="note">{ui[lang].inferred} <a href={editUrl(artist.filePath!)}>{ui[lang].edit}</a> · <a href={mailto(`Esdara: ${name.en} (${artist.id})`)}>{ui[lang].isThisYou}</a></p>
+  </section>
+
+  {
+    playable.length > 1 && (
+      <fieldset class="play-with" hidden>
+        <legend>{ui[lang].playWith}</legend>
+        <label><input type="radio" name="play-with" value="" checked />{ui[lang].auto}</label>
+        {playable.map((s) => (
+          <label data-service={s}><input type="radio" name="play-with" value={s} />{services[s][lang]}</label>
+        ))}
+      </fieldset>
+    )
+  }
+
+  {
+    releases.map((r) => (
+      <section class="release" id={r.anchor}>
+        <Cover release={r} lang={lang} />
+        <div>
+          <h2>{r.title[lang]}</h2>
+          <p class="meta">
+            {r.single ? ui[lang].single : ui[lang].tracks(r.songs.length)} · {date(lang, r.released)}
+          </p>
+          <ol class="tracks">
+            {r.songs.map((s) => {
+              const players = embeds(s.data.links);
+              return (
+              <li id={s.anchor !== r.anchor ? s.anchor : undefined}>
+                {players.length > 0 && (
+                  <button class="play" type="button" hidden aria-label={ui[lang].play(s.data.title[lang])} aria-expanded="false"
+                    data-embeds={JSON.stringify(players)}>
+                    <svg viewBox="0 0 16 16" aria-hidden="true"><path class="i-play" d="M4 2.5v11l9-5.5z" /><path class="i-stop" d="M4 3h3v10H4zM9 3h3v10H9z" /></svg>
+                  </button>
+                )}
+                <span class="title">{s.data.title[lang]}</span>
+                <span class="services">
+                  {Object.entries(s.data.links).map(([service, url]) => (
+                    <a href={url} rel="noopener" data-service={service}>
+                      {services[service][lang]}
+                    </a>
+                  ))}
+                </span>
+              </li>
+              );
+            })}
+          </ol>
+        </div>
+      </section>
+    ))
+  }
+</Base>
+
+<script>
+  // Players load only when tapped: no third-party requests or cookies until the visitor asks to listen.
+  type Player = { service: string; src: string; height?: number };
+  const KEY = 'esdara.playWith';
+  let choice = '';
+  try { choice = localStorage.getItem(KEY) ?? ''; } catch {} // the choice is only remembered when storage works
+
+  const buttons = document.querySelectorAll<HTMLButtonElement>('button.play');
+  const close = () => {
+    document.querySelectorAll('.player').forEach((p) => p.remove());
+    buttons.forEach((b) => b.setAttribute('aria-expanded', 'false'));
+  };
+  // The visitor's service when the song has it, else the first playable one.
+  const open = (button: HTMLButtonElement) => {
+    const players: Player[] = JSON.parse(button.dataset.embeds!);
+    const player = players.find((p) => p.service === choice) ?? players[0];
+    const frame = document.createElement('iframe');
+    frame.src = player.src;
+    frame.title = button.getAttribute('aria-label')!;
+    frame.allow = 'autoplay; encrypted-media; clipboard-write; fullscreen; picture-in-picture';
+    frame.className = 'player';
+    if (player.height) frame.height = String(player.height);
+    else frame.classList.add('video');
+    button.closest('li')!.append(frame);
+    button.setAttribute('aria-expanded', 'true');
+  };
+  for (const button of buttons) {
+    button.hidden = false;
+    button.addEventListener('click', () => {
+      const wasOpen = button.getAttribute('aria-expanded') === 'true';
+      close();
+      if (!wasOpen) open(button);
+    });
+  }
+
+  const picker = document.querySelector<HTMLFieldSetElement>('.play-with');
+  if (picker) {
+    picker.hidden = false;
+    const saved = picker.querySelector<HTMLInputElement>(`input[value="${CSS.escape(choice)}"]`);
+    if (saved) saved.checked = true;
+    picker.addEventListener('change', (e) => {
+      choice = (e.target as HTMLInputElement).value;
+      try { choice ? localStorage.setItem(KEY, choice) : localStorage.removeItem(KEY); } catch {}
+      // Switch the song that's playing now to the new service.
+      const playing = [...buttons].find((b) => b.getAttribute('aria-expanded') === 'true');
+      if (playing) { close(); open(playing); }
+    });
+  }
+</script>
+
+<style>
+  .hero { max-width: 44rem; margin-block-end: 2.5rem; }
+  .hero :global(.photo) { width: 7rem; height: 7rem; border-radius: 50%; object-fit: cover; display: block; margin-block-start: 1rem; }
+  .note { font-size: 0.875rem; color: var(--muted); }
+  .note a { color: var(--muted); }
+  .tags, .links { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.75rem 0; }
+  .tags a, .links a {
+    padding: 0.25rem 0.75rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--fg);
+    text-decoration: none;
+    font-size: 0.875rem;
+  }
+  .links a { color: var(--accent); }
+  .bio { color: var(--fg); font-size: 1.0625rem; }
+  .play-with { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; border: 0; padding: 0; margin: 0 0 0.5rem; }
+  .play-with[hidden] { display: none; }
+  .play-with legend { float: inline-start; margin-inline-end: 0.4rem; color: var(--muted); font-size: 0.875rem; }
+  .play-with label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.75rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface);
+    font-size: 0.8125rem;
+    cursor: pointer;
+  }
+  .play-with label[data-service]::before { content: ''; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--service); }
+  .play-with input { position: absolute; opacity: 0; pointer-events: none; }
+  .play-with label:has(:checked) { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .play-with label:has(:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .release {
+    display: grid;
+    gap: 1.25rem;
+    padding-block: 2rem;
+    border-top: 1px solid var(--line);
+    scroll-margin-top: 1rem;
+  }
+  @media (min-width: 40rem) { .release { grid-template-columns: 15rem 1fr; gap: 2rem; } }
+  .release :global(.cover) { max-width: 20rem; }
+  h2 { margin: 0; font-size: 1.5rem; line-height: 1.3; }
+  .meta { color: var(--muted); margin: 0.25rem 0 1rem; font-size: 0.875rem; }
+  .tracks { margin: 0; padding: 0; list-style: none; counter-reset: track; }
+  .tracks li {
+    counter-increment: track;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1rem;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .tracks li::before { content: counter(track); color: var(--muted); font-size: 0.875rem; min-width: 1.25rem; }
+  .tracks li:target { background: var(--surface); }
+  .title { flex: 1 1 10rem; font-weight: 500; }
+  .services { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  .services a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--fg);
+    text-decoration: none;
+    font-size: 0.8125rem;
+  }
+  .services a::before { content: ''; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--service); }
+  .services a:hover { border-color: var(--service); }
+  .play {
+    display: grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    flex: none;
+    border: 0;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--accent-fg);
+    cursor: pointer;
+  }
+  .play[hidden] { display: none; }
+  .play svg { width: 0.9rem; height: 0.9rem; fill: currentColor; }
+  .play .i-stop, .play[aria-expanded='true'] .i-play { display: none; }
+  .play[aria-expanded='true'] .i-stop { display: inline; }
+  .tracks :global(.player) { flex-basis: 100%; width: 100%; border: 0; border-radius: var(--radius); }
+  .tracks :global(.player.video) { aspect-ratio: 16 / 9; height: auto; }
+</style>

@@ -1,0 +1,28 @@
+---
+import Base from '../../layouts/Base.astro';
+import Feed from '../../components/Feed.astro';
+import { loadReleases, paginate } from '../../data';
+import { href, langPaths, toLang, ui } from '../../i18n';
+import { contributeUrl } from '../../site';
+
+export const getStaticPaths = langPaths;
+const lang = toLang(Astro.params.lang);
+const all = await loadReleases();
+const pages = paginate(all);
+---
+
+<Base lang={lang} path="/">
+  <h1>{ui[lang].tagline}</h1>
+  <p class="lead">{ui[lang].intro}</p>
+  <p class="cta">
+    <a href={contributeUrl}>{ui[lang].addMusic}</a>
+    <a href={href(lang, '/search/')}>{ui[lang].search}</a>
+  </p>
+  <Feed lang={lang} all={all} releases={pages[0]} page={1} pages={pages.length} base="/" />
+</Base>
+
+<style>
+  .cta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-block: 1.25rem 0; }
+  .cta a { padding: 0.55rem 1.1rem; border-radius: 999px; font-weight: 500; text-decoration: none; border: 1px solid var(--line); color: var(--fg); background: var(--surface); }
+  .cta a:first-child { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+</style>

@@ -1,0 +1,42 @@
+Esdara (إصدارة), the Independent Arabic Music Directory
+Copyright (C) 2026 Rami GB <https://www.ramigb.com> and contributors
+
+WHAT THE LICENSE COVERS
+
+The website's source code and site texts (everything in this repository except the content/artists/
+folder) are free software: you can redistribute and/or modify them under the terms of the GNU Affero
+General Public License, version 3 or (at your option) any later version, published by the Free Software
+Foundation. See LICENSE for the full text.
+
+In short: you are free to clone this project and run a similar website. If you run a modified version
+publicly, you must offer its source code to your visitors under the same license.
+
+These programs are distributed in the hope that they will be useful, but WITHOUT ANY WARRANTY; without
+even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero
+General Public License for more details.
+
+WHAT THE LICENSE DOES NOT COVER
+
+Everything in content/artists/ (artist names, bios, photos, album covers, release information and links)
+is NOT licensed under the AGPL or any other license by this project. Esdara does not own any of the music,
+artist photos or cover art it lists; they belong to the artists or their respective rights holders. We
+only index publicly available links. Copying or cloning these folders gives you no rights to their
+contents, because we have no rights to grant.
+
+Third-party marks and names (YouTube, Spotify and others) belong to their owners.
+
+CONTRIBUTIONS
+
+Code and site-text contributions are accepted under the same license (AGPL-3.0-or-later). Artists who
+submit their own content keep all rights to it and only permit Esdara to list it.
+
+To ask for content to be removed or corrected, email rights@esdara.org (no GitHub account needed) or open an
+issue: https://github.com/ramigb/esdara/issues
+
+Arabic summary · ملخص بالعربية
+
+الشيفرة المصدرية ونصوص الموقع (كل ما في المستودع عدا مجلد content/artists/) مرخّصة برخصة GNU Affero
+العمومية، الإصدار 3 أو أحدث: يمكنك نسخها وبناء موقع مشابه، وإن شغّلت نسخة معدّلة للعموم فعليك إتاحة
+شيفرتها بالرخصة نفسها. أما محتوى content/artists/ من موسيقى وصور ومعلومات فليس ملكنا ولا تشمله أي رخصة
+منا، فهو للفنانين أو لأصحاب حقوقه، ونسخه لا يمنحك أي حق فيه.
+لطلب إزالة محتوى أو تصحيحه راسلنا على rights@esdara.org (دون الحاجة إلى حساب على GitHub).

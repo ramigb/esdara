@@ -1,0 +1,211 @@
+---
+import { Font } from 'astro:assets';
+import { getCollection } from 'astro:content';
+import Logo from '../components/Logo.astro';
+import { dir, href, ui, type Lang } from '../i18n';
+import { contactEmail, contributeUrl, gaId, repo } from '../site';
+
+interface Props {
+  lang: Lang;
+  title?: string;
+  path: string; // current path without the language prefix, used for the language switch
+  description?: string; // search results and link previews; defaults to the site intro
+  image?: string; // absolute URL of the link-preview image
+  noindex?: boolean; // pages that must stay out of search engines (404)
+}
+const { lang, title, path, description = ui[lang].intro, image, noindex } = Astro.props;
+const other: Lang = lang === 'ar' ? 'en' : 'ar';
+const url = (l: Lang) => new URL(href(l, path), Astro.site).href;
+const fullTitle = title ? `${title} · ${ui[lang].site}` : `${ui[lang].site} · ${ui[lang].tagline}`;
+const pages = await getCollection('pages');
+const [artistTotal, songTotal] = [(await getCollection('artists')).length, (await getCollection('songs')).length];
+// One footer link per Arabic page, titled from its .en twin on English pages when there is one.
+const footerPages = pages
+  .filter((p) => !p.id.endsWith('.en'))
+  .map((p) => ({ slug: p.id, title: ((lang === 'en' && pages.find((e) => e.id === `${p.id}.en`)) || p).data.title }));
+---
+
+<!doctype html>
+<html lang={lang} dir={dir(lang)}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    {
+      noindex ? (
+        <meta name="robots" content="noindex" />
+      ) : (
+        <>
+          <link rel="canonical" href={url(lang)} />
+          <link rel="alternate" hreflang="ar" href={url('ar')} />
+          <link rel="alternate" hreflang="en" href={url('en')} />
+          <link rel="alternate" hreflang="x-default" href={url('ar')} />
+        </>
+      )
+    }
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={ui[lang].site} />
+    <meta property="og:title" content={title ?? fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={url(lang)} />
+    <meta property="og:locale" content={lang === 'ar' ? 'ar_AR' : 'en_US'} />
+    {image && <meta property="og:image" content={image} />}
+    <meta name="twitter:card" content="summary" />
+    <Font cssVariable="--font-readex" preload />
+  </head>
+  <body>
+    <header class="wrap">
+      <div class="brand"><Logo lang={lang} /><span class="beta">{ui[lang].beta}</span></div>
+      <nav>
+        <span id="db" class="db" data-state="idle"><span class="dot" aria-hidden="true"></span><span class="stats">{ui[lang].artistCount(artistTotal)} · {ui[lang].songCount(songTotal)}</span></span>
+        <a class="icon" href={href(lang, '/search/')} aria-label={ui[lang].search}>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
+        </a>
+        <a class="lang" href={href(other, path)} lang={other} hreflang={other}>{ui[lang].other}</a>
+      </nav>
+    </header>
+    <main class="wrap"><slot /></main>
+    <footer class="wrap">
+      <p>{ui[lang].footer}</p>
+      <p>{footerPages.map((p) => <><a href={href(lang, `/${p.slug}/`)}>{p.title}</a> · </>)}<a href={contributeUrl}>{ui[lang].addMusic}</a> · <a href={`mailto:${contactEmail}`}>{ui[lang].contact}</a> · <a href={repo}>{ui[lang].source}</a>{gaId && <> · <button class="cookies" type="button" hidden>{ui[lang].cookieSettings}</button></>}</p>
+      <p>{ui[lang].madeBy}<a href="https://www.ramigb.com">Rami GB</a>{ui[lang].credits}</p>
+    </footer>
+    {
+      gaId && (
+        <div class="consent" role="region" aria-label={ui[lang].cookieSettings} data-ga={gaId} hidden>
+          <p>{ui[lang].consent} <a href={href(lang, '/faq/')}>{ui[lang].consentMore}</a></p>
+          <button type="button" value="granted">{ui[lang].accept}</button>
+          <button type="button" value="denied">{ui[lang].decline}</button>
+        </div>
+      )
+    }
+  </body>
+</html>
+
+<script>
+  // Google Analytics loads only after the visitor accepts; nothing is sent before that or after declining.
+  const box = document.querySelector<HTMLElement>('.consent');
+  const settings = document.querySelector<HTMLButtonElement>('.cookies');
+  if (box && settings) {
+    const KEY = 'esdara.consent';
+    let saved: string | null = null;
+    try { saved = localStorage.getItem(KEY); } catch {} // without storage the banner shows on every page
+    let loaded = false;
+    const load = () => {
+      const w = window as any;
+      w.dataLayer = w.dataLayer || [];
+      w.gtag = function () { w.dataLayer.push(arguments); }; // gtag.js expects Arguments objects, not arrays
+      w.gtag('js', new Date());
+      w.gtag('config', box.dataset.ga);
+      const s = document.createElement('script');
+      s.async = true;
+      s.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(box.dataset.ga!)}`;
+      document.head.append(s);
+      loaded = true;
+    };
+    if (saved === 'granted') load();
+    box.hidden = saved === 'granted' || saved === 'denied';
+    settings.hidden = false;
+    settings.addEventListener('click', () => { box.hidden = false; });
+    box.addEventListener('click', (e) => {
+      const choice = (e.target as HTMLElement).closest('button')?.value;
+      if (!choice) return;
+      try { localStorage.setItem(KEY, choice); } catch {}
+      box.hidden = true;
+      if (choice === 'granted' && !loaded) load();
+      if (choice === 'denied' && loaded) {
+        // Withdrawing consent: drop GA's cookies (set on the site's domain) and reload so the script is gone.
+        for (const c of document.cookie.split('; ')) {
+          const name = c.split('=')[0];
+          if (name.startsWith('_ga')) for (const d of ['', `; domain=.${location.hostname.replace(/^www\./, '')}`]) document.cookie = `${name}=; max-age=0; path=/${d}`;
+        }
+        location.reload();
+      }
+    });
+  }
+</script>
+
+<style is:global>
+  :root {
+    color-scheme: light dark;
+    --bg: #f7f3ec;
+    --surface: #fffdf9;
+    --fg: #1d1b18;
+    --muted: #6b645a;
+    --line: #e6dfd3;
+    --accent: #c2410c;
+    --accent-fg: #fff;
+    --radius: 10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #131210;
+      --surface: #1d1b18;
+      --fg: #f2ede5;
+      --muted: #a39b8f;
+      --line: #2e2b26;
+      --accent: #f97316;
+      --accent-fg: #1d1b18;
+    }
+  }
+  [data-service='youtube'] { --service: #ff0033; }
+  [data-service='spotify'] { --service: #1db954; }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 1rem/1.6 var(--font-readex);
+    -webkit-text-size-adjust: 100%;
+  }
+  .wrap { max-width: 72rem; margin-inline: auto; padding-inline: 1rem; }
+  @media (min-width: 40rem) { .wrap { padding-inline: 2rem; } }
+  header { display: flex; justify-content: space-between; align-items: center; padding-block: 1.25rem; }
+  footer { margin-block: 4rem 2rem; padding-block-start: 1.5rem; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.875rem; }
+  a { color: var(--accent); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+  .brand { display: flex; align-items: center; gap: 0.5rem; }
+  .beta { padding: 0.1rem 0.5rem; border: 1px solid var(--accent); border-radius: 999px; color: var(--accent); font-size: 0.75rem; font-weight: 600; }
+  .cookies { padding: 0; border: 0; background: none; color: var(--accent); font: inherit; text-decoration: underline; cursor: pointer; }
+  .cookies[hidden] { display: none; }
+  .consent {
+    position: fixed;
+    inset-inline: 1rem;
+    bottom: 1rem;
+    z-index: 10;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    max-width: 40rem;
+    margin-inline: auto;
+    padding: 1rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: 0 4px 24px rgb(0 0 0 / 0.15);
+  }
+  .consent[hidden] { display: none; }
+  .consent p { flex: 1 1 16rem; margin: 0; font-size: 0.875rem; }
+  .consent button { padding: 0.4rem 1rem; border: 1px solid var(--accent); border-radius: 999px; background: none; color: var(--accent); font: inherit; font-size: 0.875rem; cursor: pointer; }
+  header nav { display: flex; align-items: center; gap: 0.5rem; }
+  /* data-state is set by pages that load /esdara.sqlite (search): loading, ready or failed. */
+  .db { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--muted); font-size: 0.8125rem; white-space: nowrap; }
+  .db .dot { display: none; width: 0.6rem; height: 0.6rem; border-radius: 50%; }
+  .db:not([data-state='idle']) .dot { display: block; }
+  .db[data-state='loading'] .dot { border: 2px solid var(--line); border-top-color: var(--accent); animation: spin 0.8s linear infinite; }
+  .db[data-state='ready'] .dot { background: #16a34a; }
+  .db[data-state='failed'] .dot { background: #dc2626; }
+  @keyframes spin { to { transform: rotate(1turn); } }
+  @media (prefers-reduced-motion: reduce) { .db[data-state='loading'] .dot { animation-duration: 2.4s; } }
+  @media (max-width: 30rem) { .db .stats { display: none; } }
+  .icon { display: grid; place-items: center; width: 2.25rem; height: 2.25rem; border-radius: 50%; color: var(--fg); border: 1px solid var(--line); }
+  .icon svg { width: 1.1rem; height: 1.1rem; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+  footer p { margin: 0.25rem 0; }
+  .lang { color: var(--fg); text-decoration: none; padding: 0.35rem 0.8rem; border: 1px solid var(--line); border-radius: 999px; font-size: 0.875rem; }
+  h1 { font-size: clamp(1.75rem, 5vw, 2.75rem); line-height: 1.2; font-weight: 700; margin: 1rem 0 0.5rem; }
+  .lead { color: var(--muted); font-size: 1.0625rem; margin: 0; max-width: 40rem; }
+</style>

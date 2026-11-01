@@ -1,0 +1,35 @@
+---
+// One pre-rendered list per filter value: /country/eg/, /genre/indie-rock/page/2/, /service/spotify/
+import Base from '../../../../layouts/Base.astro';
+import Feed from '../../../../components/Feed.astro';
+import { facets, facetValues, loadReleases, pageUrl, paginate, type Facet, type Release } from '../../../../data';
+import { facetLabel, langPaths, toLang, ui, type Lang } from '../../../../i18n';
+
+export async function getStaticPaths() {
+  const all = await loadReleases();
+  return langPaths().flatMap(({ params }) =>
+    (Object.keys(facets) as Facet[]).flatMap((facet) =>
+      facetValues(all, facet).flatMap((value) => {
+        const pages = paginate(all.filter((r) => facets[facet](r).includes(value)));
+        return pages.map((releases, i) => ({
+          params: { ...params, facet, value, page: i ? `page/${i + 1}` : undefined },
+          props: { lang: toLang(params.lang), facet, value, all, releases, page: i + 1, pages: pages.length },
+        }));
+      }),
+    ),
+  );
+}
+
+// Read everything from props: with two rest params, Astro.params re-parses /service/x/page/2 as lang="service".
+const { lang, facet, value, all, releases, page, pages } = Astro.props as {
+  lang: Lang; facet: Facet; value: string; all: Release[]; releases: Release[]; page: number; pages: number;
+};
+const label = facetLabel(lang, facet, value);
+const base = `/${facet}/${value}/`;
+---
+
+<Base lang={lang} title={page > 1 ? `${label} · ${ui[lang].pageOf(page, pages)}` : label} path={pageUrl(base, page)}>
+  <h1>{label}</h1>
+  <p class="lead">{ui[lang].latest}</p>
+  <Feed lang={lang} all={all} releases={releases} active={{ facet, value }} page={page} pages={pages} base={base} />
+</Base>

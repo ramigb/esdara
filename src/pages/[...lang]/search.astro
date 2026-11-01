@@ -1,0 +1,215 @@
+---
+// Search and combined filters over /esdara.sqlite, run in the browser with sql.js. Without JavaScript the
+// page says so, and the pre-rendered filter pages remain the way to browse.
+import Base from '../../layouts/Base.astro';
+import { facetValues, loadReleases, type Facet } from '../../data';
+import { facetLabel, href, langPaths, toLang, ui } from '../../i18n';
+
+export const getStaticPaths = langPaths;
+const lang = toLang(Astro.params.lang);
+const all = await loadReleases();
+const selects: { name: Facet; any: string }[] = [
+  { name: 'country', any: ui[lang].anyCountry },
+  { name: 'genre', any: ui[lang].anyGenre },
+  { name: 'service', any: ui[lang].anyService },
+];
+---
+
+<Base lang={lang} title={ui[lang].search} path="/search/">
+  <h1>{ui[lang].search}</h1>
+  <form id="search" role="search" action={href(lang, '/search/')} data-lang={lang}>
+    <input type="search" name="q" placeholder={ui[lang].searchPlaceholder} aria-label={ui[lang].searchPlaceholder} autocomplete="off" />
+    <div class="selects">
+      {
+        selects.map(({ name, any }) => (
+          <select name={name} aria-label={ui[lang][name]}>
+            <option value="">{any}</option>
+            {facetValues(all, name).map((v) => (
+              <option value={v}>{facetLabel(lang, name, v)}</option>
+            ))}
+          </select>
+        ))
+      }
+    </div>
+  </form>
+  <p id="status" class="status" aria-live="polite">{ui[lang].noscript}</p>
+  <ul id="artists" class="artists"></ul>
+  <ol id="results" class="results"></ol>
+
+  <template id="artist-tpl"><li><a><span class="thumb round"></span><span class="name"></span></a></li></template>
+  <template id="song-tpl">
+    <li><a><span class="thumb"></span><span class="text"><strong></strong><span class="by"></span><span class="meta"></span></span></a></li>
+  </template>
+</Base>
+
+<script>
+  import initSqlJs from 'sql.js';
+  import wasmUrl from 'sql.js/dist/sql-wasm-browser.wasm?url';
+  import { normalize } from '../../normalize';
+  import { country, date, href, ui, type Lang } from '../../i18n';
+
+  type Row = Record<string, string | number | null>;
+  const $ = <T extends Element>(sel: string, root: ParentNode = document) => root.querySelector<T>(sel)!;
+  const form = $<HTMLFormElement>('#search');
+  const status = $('#status');
+  const lang = form.dataset.lang as Lang;
+  const t = ui[lang];
+  // Header indicator from Base.astro; the #status line below stays the screen-reader announcement.
+  const indicator = $<HTMLElement>('#db');
+  const setIndex = (state: string, label: string) => ((indicator.dataset.state = state), (indicator.title = label));
+
+  // Restore a shared search from the URL.
+  const params = new URLSearchParams(location.search);
+  for (const el of form.querySelectorAll<HTMLInputElement | HTMLSelectElement>('[name]')) el.value = params.get(el.name) ?? '';
+
+  function thumb(el: HTMLElement, src: unknown, hue: unknown, text: string) {
+    if (src) {
+      const img = document.createElement('img');
+      img.src = String(src);
+      img.alt = '';
+      img.loading = 'lazy';
+      el.append(img);
+    } else {
+      el.style.setProperty('--hue', String(hue ?? 20));
+      el.textContent = text.charAt(0);
+    }
+  }
+
+  async function start() {
+    status.textContent = t.loading;
+    setIndex('loading', t.loading);
+    const [SQL, bytes] = await Promise.all([
+      initSqlJs({ locateFile: () => wasmUrl }),
+      fetch('/esdara.sqlite').then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(`index: HTTP ${r.status}`)))),
+    ]);
+    const db = new SQL.Database(new Uint8Array(bytes));
+    setIndex('ready', t.indexReady);
+    const rows = (sql: string, args: string[]): Row[] => {
+      const stmt = db.prepare(sql);
+      stmt.bind(args);
+      const out: Row[] = [];
+      while (stmt.step()) out.push(stmt.getAsObject());
+      stmt.free();
+      return out;
+    };
+
+    function run() {
+      const data = Object.fromEntries(new FormData(form)) as Record<string, string>;
+      const set = Object.entries(data).filter(([, v]) => v);
+      history.replaceState(null, '', set.length ? `?${new URLSearchParams(set)}` : location.pathname);
+
+      const terms = normalize(data.q).split(/\s+/).filter(Boolean);
+      const where = terms.map(() => 'instr(s.search, ?) > 0');
+      const args = [...terms];
+      if (data.country) where.push('lower(s.country) = ?'), args.push(data.country);
+      if (data.genre) where.push('EXISTS (SELECT 1 FROM song_genres g WHERE g.song_id = s.id AND g.genre = ?)'), args.push(data.genre);
+      if (data.service) where.push('EXISTS (SELECT 1 FROM song_links l WHERE l.song_id = s.id AND l.service = ?)'), args.push(data.service);
+      // shortcut: first 100 matches, add paging here if people need more
+      const songs = rows(
+        `SELECT s.*, a.name_ar, a.name_en FROM songs s JOIN artists a ON a.id = s.artist_id
+         ${where.length ? `WHERE ${where.join(' AND ')}` : ''} ORDER BY s.released DESC LIMIT 100`,
+        args,
+      );
+      const artists = terms.length
+        ? rows(
+            `SELECT * FROM artists WHERE ${terms.map(() => 'instr(search, ?) > 0').join(' AND ')}
+             ${data.country ? 'AND lower(country) = ?' : ''} ORDER BY name_en LIMIT 20`,
+            data.country ? [...terms, data.country] : terms,
+          )
+        : [];
+
+      $('#artists').replaceChildren(
+        ...artists.map((a) => {
+          const li = $<HTMLTemplateElement>('#artist-tpl').content.cloneNode(true) as DocumentFragment;
+          const name = String(a[`name_${lang}`]);
+          $<HTMLAnchorElement>('a', li).href = href(lang, `/artists/${a.id}/`);
+          thumb($('.thumb', li), a.photo, null, name);
+          $('.name', li).textContent = name;
+          return li;
+        }),
+      );
+      $('#results').replaceChildren(
+        ...songs.map((s) => {
+          const li = $<HTMLTemplateElement>('#song-tpl').content.cloneNode(true) as DocumentFragment;
+          const title = String(s[`title_${lang}`]);
+          $<HTMLAnchorElement>('a', li).href = href(lang, `/artists/${s.artist_id}/#${s.anchor}`);
+          thumb($('.thumb', li), s.cover, s.hue, title);
+          $('strong', li).textContent = title;
+          $('.by', li).textContent = String(s[`name_${lang}`]);
+          $('.meta', li).textContent = `${country(lang, String(s.country))} · ${date(lang, new Date(String(s.released)))}`;
+          return li;
+        }),
+      );
+      status.textContent = t.results(songs.length);
+    }
+
+    form.addEventListener('input', run);
+    form.addEventListener('submit', (e) => (e.preventDefault(), run()));
+    run();
+  }
+
+  start().catch((err) => {
+    console.error(err);
+    status.textContent = t.searchFailed;
+    setIndex('failed', t.searchFailed);
+  });
+</script>
+
+<style>
+  form { display: grid; gap: 0.75rem; margin-block: 1.25rem; }
+  input, select {
+    font: inherit;
+    color: var(--fg);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 0.5rem 1rem;
+  }
+  input { font-size: 1.125rem; padding: 0.75rem 1.25rem; }
+  .selects { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  select { font-size: 0.875rem; max-width: 100%; }
+  .status { color: var(--muted); font-size: 0.875rem; }
+  .artists, .results { list-style: none; margin: 0; padding: 0; }
+  .artists { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-block-end: 1rem; }
+  .artists a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.9rem 0.25rem 0.25rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--fg);
+    text-decoration: none;
+  }
+  [dir='rtl'] .artists a { padding: 0.25rem 0.25rem 0.25rem 0.9rem; }
+  .results a {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--line);
+    color: var(--fg);
+    text-decoration: none;
+  }
+  .results a:hover strong { color: var(--accent); }
+  .thumb {
+    width: 3.5rem;
+    height: 3.5rem;
+    flex: none;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    border-radius: 6px;
+    color: rgb(255 255 255 / 0.85);
+    font-weight: 700;
+    font-size: 1.25rem;
+    background: linear-gradient(135deg, hsl(var(--hue, 20) 55% 42%), hsl(calc(var(--hue, 20) + 40) 60% 22%));
+  }
+  .thumb.round { width: 2rem; height: 2rem; border-radius: 50%; font-size: 0.875rem; }
+  .thumb :global(img) { width: 100%; height: 100%; object-fit: cover; }
+  .text { display: grid; min-width: 0; }
+  .text > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .by { font-size: 0.9375rem; }
+  .meta { color: var(--muted); font-size: 0.8125rem; }
+</style>

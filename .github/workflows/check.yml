@@ -1,0 +1,12 @@
+# Validates every PR: front matter schema, link domains, tests, and Cloudflare file limits.
+# Runs without secrets, so contributor PRs from forks can't reach deploy credentials.
+name: Check
+on: pull_request
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version-file: .nvmrc, cache: npm }
+      - run: npm ci && npm test && npm run build

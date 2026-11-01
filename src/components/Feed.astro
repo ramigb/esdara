@@ -1,0 +1,92 @@
+---
+// Filter bar + cover grid. Filters are plain links to pre-rendered pages, so they work without JavaScript.
+import ReleaseCard from './ReleaseCard.astro';
+import { facets, facetValues, pageUrl, type Facet, type Release } from '../data';
+import { facetLabel, href, ui, type Lang } from '../i18n';
+
+interface Props {
+  lang: Lang;
+  all: Release[]; // every release, to list the filter values
+  releases: Release[]; // this page's releases
+  active?: { facet: Facet; value: string };
+  page: number;
+  pages: number;
+  base: string; // the list's path without the language prefix, e.g. "/" or "/genre/jazz/"
+}
+const { lang, all, releases, active, page, pages, base } = Astro.props;
+---
+
+<nav class="filters" aria-label={ui[lang].latest}>
+  {
+    (Object.keys(facets) as Facet[]).map((facet) => (
+      <details>
+        <summary class:list={{ on: active?.facet === facet }}>
+          {active?.facet === facet ? facetLabel(lang, facet, active.value) : ui[lang][facet]}
+        </summary>
+        <ul>
+          {facetValues(all, facet).map((value) => (
+            <li>
+              <a href={href(lang, `/${facet}/${value}/`)} aria-current={active?.facet === facet && active.value === value ? 'page' : undefined}>
+                {facetLabel(lang, facet, value)}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </details>
+    ))
+  }
+  {active && <a class="clear" href={href(lang)}>{ui[lang].clear} ×</a>}
+</nav>
+
+<div class="grid">{releases.map((r) => <ReleaseCard release={r} lang={lang} />)}</div>
+
+{
+  pages > 1 && (
+    <nav class="pager" aria-label={ui[lang].pages}>
+      {page > 1 ? <a href={href(lang, pageUrl(base, page - 1))} rel="prev">{ui[lang].prev}</a> : <span />}
+      <span>{ui[lang].pageOf(page, pages)}</span>
+      {page < pages ? <a href={href(lang, pageUrl(base, page + 1))} rel="next">{ui[lang].next}</a> : <span />}
+    </nav>
+  )
+}
+
+<style>
+  .filters { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: flex-start; margin-block: 1.5rem; }
+  details { position: relative; }
+  summary, .clear {
+    list-style: none;
+    cursor: pointer;
+    padding: 0.4rem 0.9rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface);
+    font-size: 0.875rem;
+    color: var(--fg);
+    text-decoration: none;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: '▾'; margin-inline-start: 0.4rem; color: var(--muted); }
+  summary.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .clear { color: var(--muted); }
+  ul {
+    position: absolute;
+    z-index: 2;
+    inset-inline-start: 0;
+    margin: 0.4rem 0 0;
+    padding: 0.4rem;
+    min-width: 12rem;
+    max-height: 18rem;
+    overflow: auto;
+    list-style: none;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.15);
+  }
+  ul a { display: block; padding: 0.4rem 0.6rem; border-radius: 6px; color: var(--fg); text-decoration: none; }
+  ul a:hover, ul a[aria-current] { background: var(--line); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1.75rem 1rem; }
+  .pager { display: flex; justify-content: space-between; align-items: center; margin-block: 2.5rem 0; color: var(--muted); font-size: 0.875rem; }
+  .pager a { padding: 0.5rem 1.1rem; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--fg); text-decoration: none; }
+  @media (min-width: 40rem) { .grid { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 2rem 1.5rem; } }
+</style>

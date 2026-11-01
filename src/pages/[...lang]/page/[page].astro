@@ -1,0 +1,24 @@
+---
+// Home feed, pages 2 and up.
+import Base from '../../../layouts/Base.astro';
+import Feed from '../../../components/Feed.astro';
+import { loadReleases, paginate, type Release } from '../../../data';
+import { langPaths, toLang, ui } from '../../../i18n';
+
+export async function getStaticPaths() {
+  const all = await loadReleases();
+  const pages = paginate(all);
+  return langPaths().flatMap(({ params }) =>
+    pages.slice(1).map((releases, i) => ({ params: { ...params, page: String(i + 2) }, props: { all, releases, pages: pages.length } })),
+  );
+}
+
+const { all, releases, pages } = Astro.props as { all: Release[]; releases: Release[]; pages: number };
+const lang = toLang(Astro.params.lang);
+const page = Number(Astro.params.page);
+---
+
+<Base lang={lang} title={ui[lang].pageOf(page, pages)} path={`/page/${page}/`}>
+  <h1>{ui[lang].latest}</h1>
+  <Feed lang={lang} all={all} releases={releases} page={page} pages={pages} base="/" />
+</Base>

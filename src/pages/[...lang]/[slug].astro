@@ -1,0 +1,37 @@
+---
+// Site pages from content/pages/ (e.g. /faq/ and /en/faq/). English falls back to Arabic without a .en.md.
+import { getCollection, render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { langPaths, toLang, ui } from '../../i18n';
+import { editUrl } from '../../site';
+
+export async function getStaticPaths() {
+  const pages = await getCollection('pages');
+  return langPaths().flatMap(({ params }) =>
+    pages
+      .filter((p) => !p.id.endsWith('.en'))
+      .map((page) => ({
+        params: { ...params, slug: page.id },
+        props: { page: (params.lang === 'en' && pages.find((p) => p.id === `${page.id}.en`)) || page },
+      })),
+  );
+}
+
+const { page } = Astro.props;
+const lang = toLang(Astro.params.lang);
+const { Content } = await render(page);
+---
+
+<Base lang={lang} title={page.data.title} path={`/${Astro.params.slug}/`} description={page.data.description}>
+  <article>
+    <h1>{page.data.title}</h1>
+    <Content />
+    <p><a class="edit" href={editUrl(page.filePath!)}>{ui[lang].edit}</a></p>
+  </article>
+</Base>
+
+<style>
+  article { max-width: 44rem; }
+  article :global(pre) { direction: ltr; text-align: left; padding: 1rem; border-radius: var(--radius); } /* code reads left to right on Arabic pages too */
+  .edit { font-size: 0.875rem; color: var(--muted); }
+</style>

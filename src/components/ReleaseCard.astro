@@ -1,0 +1,56 @@
+---
+import Cover from './Cover.astro';
+import type { Release } from '../data';
+import { country, date, href, services, ui, type Lang } from '../i18n';
+
+const { release: r, lang } = Astro.props as { release: Release; lang: Lang };
+---
+
+<a class="card" href={href(lang, `/artists/${r.artist.id}/#${r.anchor}`)}>
+  {
+    r.more ? (
+      <div class="stack">
+        <Cover release={r} lang={lang} />
+        <span class="more">{ui[lang].more(r.more)}</span>
+      </div>
+    ) : (
+      <Cover release={r} lang={lang} />
+    )
+  }
+  <h2>{r.title[lang]}</h2>
+  <p class="artist">{r.artist.data.name[lang]}</p>
+  <p class="meta">{country(lang, r.artist.data.country)} · {date(lang, r.released)}</p>
+  <p class="meta">
+    {r.single ? ui[lang].single : ui[lang].tracks(r.songs.length)}
+    {r.services.map((s) => <span class="dot" data-service={s} title={services[s][lang]} />)}
+  </p>
+</a>
+
+<style>
+  .card { display: block; color: inherit; text-decoration: none; min-width: 0; }
+  .card:hover h2, .card:focus-visible h2 { color: var(--accent); }
+  .card:hover :global(.cover) { transform: translateY(-2px); }
+  .card :global(.cover) { transition: transform 0.15s; }
+  h2 { font-size: 1rem; font-weight: 600; margin: 0.6rem 0 0; line-height: 1.35; }
+  .artist { margin: 0.1rem 0 0; }
+  .meta { margin: 0.15rem 0 0; font-size: 0.8125rem; color: var(--muted); display: flex; align-items: center; gap: 0.3rem; }
+  h2, .artist, .meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* Older releases by the same artist peek out above the cover as two cards behind it. */
+  .stack { position: relative; isolation: isolate; }
+  .stack::before, .stack::after { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: var(--radius); transform-origin: 50% 0; }
+  .stack::before { background: var(--muted); opacity: 0.45; transform: translateY(-0.4rem) scale(0.94); }
+  .stack::after { background: var(--line); transform: translateY(-0.75rem) scale(0.88); z-index: -2; }
+  .more {
+    position: absolute;
+    inset-block-end: 0.5rem;
+    inset-inline-end: 0.5rem;
+    padding: 0.15rem 0.6rem;
+    border-radius: 999px;
+    background: rgb(0 0 0 / 0.72);
+    color: #fff;
+    font-size: 0.8125rem;
+    font-weight: 600;
+  }
+  .dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--service); flex: none; }
+  .dot:first-of-type { margin-inline-start: 0.2rem; }
+</style>
