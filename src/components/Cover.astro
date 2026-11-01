@@ -6,26 +6,37 @@ import type { Lang } from '../i18n';
 const { release, lang } = Astro.props as { release: Release; lang: Lang };
 ---
 
-<div class="cover" style={`--hue: ${release.hue}`}>
+<div class:list={['cover', !release.cover && `p${release.hue % 3}`]} style={`--hue: ${release.hue}`}>
   {
     release.cover ? (
       <Image src={release.cover} width={480} height={480} fit="cover" alt="" loading="lazy" />
     ) : (
-      <span aria-hidden="true">{release.title[lang].charAt(0)}</span>
+      <>
+        <span aria-hidden="true">{release.title[lang].charAt(0)}</span>
+        <svg class="eq" viewBox="0 0 19 12" aria-hidden="true">
+          <rect x="0" y="6" width="2" height="6" /><rect x="4" y="2" width="2" height="10" /><rect x="8" y="5" width="2" height="7" /><rect x="12" y="0" width="2" height="12" /><rect x="16" y="7" width="2" height="5" />
+        </svg>
+      </>
     )
   }
 </div>
 
 <style>
   .cover {
+    position: relative;
     aspect-ratio: 1;
     border-radius: var(--radius);
     overflow: hidden;
     display: grid;
     place-items: center;
-    background: linear-gradient(135deg, hsl(var(--hue) 55% 42%), hsl(calc(var(--hue) + 40) 60% 22%));
+    background: var(--pattern, none) 0 0 / 44px, linear-gradient(135deg, hsl(var(--hue) 55% 42%), hsl(calc(var(--hue) + 40) 60% 22%));
     box-shadow: 0 1px 2px rgb(0 0 0 / 0.12);
   }
+  /* Placeholder tiles get one of three geometric line patterns (star, circles, lattice), picked per artist. */
+  .p0 { --pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' fill='none' stroke='white' stroke-opacity='.16'%3E%3Cpath d='M12 12h16v16H12zM20 8.7 31.3 20 20 31.3 8.7 20z'/%3E%3C/svg%3E"); }
+  .p1 { --pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' fill='none' stroke='white' stroke-opacity='.14'%3E%3Ccircle cx='20' cy='20' r='20'/%3E%3Ccircle r='20'/%3E%3Ccircle cx='40' r='20'/%3E%3Ccircle cy='40' r='20'/%3E%3Ccircle cx='40' cy='40' r='20'/%3E%3C/svg%3E"); }
+  .p2 { --pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' fill='none' stroke='white' stroke-opacity='.16'%3E%3Cpath d='M20 0 40 20 20 40 0 20z'/%3E%3Ccircle cx='20' cy='20' r='3'/%3E%3C/svg%3E"); }
   img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  span { font-size: 3.5rem; font-weight: 700; color: rgb(255 255 255 / 0.85); }
+  span { font-size: 3.5rem; font-weight: 700; color: rgb(255 255 255 / 0.9); text-shadow: 0 2px 12px rgb(0 0 0 / 0.3); }
+  .eq { position: absolute; inset-block-end: 0.6rem; inset-inline-end: 0.6rem; width: 1.2rem; fill: rgb(255 255 255 / 0.7); }
 </style>

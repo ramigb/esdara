@@ -1,8 +1,8 @@
 ---
 import Base from '../../layouts/Base.astro';
 import Feed from '../../components/Feed.astro';
-import { loadReleases, paginate } from '../../data';
-import { href, langPaths, toLang, ui } from '../../i18n';
+import { facetValues, loadReleases, paginate } from '../../data';
+import { facetLabel, href, langPaths, toLang, ui } from '../../i18n';
 import { contributeUrl } from '../../site';
 
 export const getStaticPaths = langPaths;
@@ -18,6 +18,18 @@ const pages = paginate(all);
     <a href={contributeUrl}>{ui[lang].addMusic}</a>
     <a href={href(lang, '/search/')}>{ui[lang].search}</a>
   </p>
+  <nav class="browse" aria-label={ui[lang].browse}>
+    {
+      (['genre', 'country'] as const).map((facet) => (
+        <div>
+          <span>{ui[lang][facet]}</span>
+          {facetValues(all, facet).map((value) => (
+            <a href={href(lang, `/${facet}/${value}/`)}>{facetLabel(lang, facet, value)}</a>
+          ))}
+        </div>
+      ))
+    }
+  </nav>
   <Feed lang={lang} all={all} releases={pages[0]} page={1} pages={pages.length} base="/" />
 </Base>
 
@@ -25,4 +37,11 @@ const pages = paginate(all);
   .cta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-block: 1.25rem 0; }
   .cta a { padding: 0.55rem 1.1rem; border-radius: 999px; font-weight: 500; text-decoration: none; border: 1px solid var(--line); color: var(--fg); background: var(--surface); }
   .cta a:first-child { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+  .browse { margin-block: 1.75rem 0; display: grid; gap: 0.6rem; }
+  /* One row per facet; on narrow screens the row scrolls sideways instead of pushing the feed down. */
+  .browse div { display: flex; align-items: center; gap: 0.4rem; overflow-x: auto; scrollbar-width: none; }
+  .browse span { flex: none; min-width: 4.5rem; font-size: 0.8125rem; color: var(--muted); }
+  .browse a { flex: none; padding: 0.3rem 0.8rem; border-radius: 999px; font-size: 0.875rem; text-decoration: none; color: var(--fg); background: var(--line); }
+  .browse a:hover, .browse a:focus-visible { background: var(--accent); color: var(--accent-fg); }
+  @media (min-width: 40rem) { .browse div { flex-wrap: wrap; } }
 </style>
