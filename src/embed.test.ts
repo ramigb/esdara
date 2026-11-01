@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { embed, embeds } from './embed.ts';
+import { embed, embeds, playlist } from './embed.ts';
 
 test('youtube: watch, short, shorts links; rejects bad ids', () => {
   const src = 'https://www.youtube-nocookie.com/embed/abcDEF12_-x?autoplay=1';
@@ -27,4 +27,15 @@ test('embeds lists every playable link in preferred order', () => {
   assert.deepEqual(list.map((e) => e.service), ['youtube', 'spotify']);
   assert.equal(list[1].height, 152);
   assert.deepEqual(embeds({ youtube: 'https://youtu.be/bad' }), []);
+});
+
+test('playlist: first video in the path and the queue, duplicates and bad links dropped', () => {
+  const a = 'abcDEF12_-a', b = 'abcDEF12_-b';
+  assert.equal(
+    playlist([`https://youtu.be/${a}`, 'https://www.youtube.com/@channel', `https://www.youtube.com/watch?v=${b}`, `https://youtu.be/${a}`]),
+    `https://www.youtube-nocookie.com/embed/${a}?autoplay=1&playlist=${a},${b}`,
+  );
+  assert.equal(playlist([]), null);
+  const many = Array.from({ length: 60 }, (_, i) => `https://youtu.be/abcDEF12_${String(i).padStart(2, '0')}`);
+  assert.equal(playlist(many)!.split('playlist=')[1].split(',').length, 50);
 });

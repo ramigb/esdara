@@ -2,6 +2,7 @@
 // Filter bar + cover grid. Filters are plain links to pre-rendered pages, so they work without JavaScript.
 import ReleaseCard from './ReleaseCard.astro';
 import { facets, facetValues, pageUrl, type Facet, type Release } from '../data';
+import { playlist } from '../embed';
 import { facetLabel, href, ui, type Lang } from '../i18n';
 
 interface Props {
@@ -14,9 +15,17 @@ interface Props {
   base: string; // the list's path without the language prefix, e.g. "/" or "/genre/jazz/"
 }
 const { lang, all, releases, active, page, pages, base } = Astro.props;
+const playAll = playlist(releases.flatMap((r) => r.songs.flatMap((s) => s.data.links.youtube ?? [])));
 ---
 
 <nav class="filters" aria-label={ui[lang].latest}>
+  {
+    playAll && (
+      <button class="play-all" type="button" hidden aria-expanded="false" data-src={playAll} data-play={ui[lang].playAll} data-stop={ui[lang].stop}>
+        {ui[lang].playAll}
+      </button>
+    )
+  }
   {
     (Object.keys(facets) as Facet[]).map((facet) => (
       <details>
@@ -49,6 +58,28 @@ const { lang, all, releases, active, page, pages, base } = Astro.props;
     </nav>
   )
 }
+
+<script>
+  // "Play all": one YouTube player queued with this page's songs. Loads only when pressed, like the song players.
+  const button = document.querySelector<HTMLButtonElement>('button.play-all');
+  if (button) {
+    button.hidden = false;
+    button.addEventListener('click', () => {
+      const playing = button.getAttribute('aria-expanded') === 'true';
+      document.querySelector('.play-all-player')?.remove();
+      if (!playing) {
+        const frame = document.createElement('iframe');
+        frame.src = button.dataset.src!;
+        frame.title = button.dataset.play!;
+        frame.allow = 'autoplay; encrypted-media; fullscreen; picture-in-picture';
+        frame.className = 'play-all-player';
+        button.closest('nav')!.after(frame);
+      }
+      button.setAttribute('aria-expanded', String(!playing));
+      button.textContent = playing ? button.dataset.play! : button.dataset.stop!;
+    });
+  }
+</script>
 
 <style>
   .filters { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: flex-start; margin-block: 1.5rem; }
@@ -85,6 +116,20 @@ const { lang, all, releases, active, page, pages, base } = Astro.props;
   }
   ul a { display: block; padding: 0.4rem 0.6rem; border-radius: 6px; color: var(--fg); text-decoration: none; }
   ul a:hover, ul a[aria-current] { background: var(--line); }
+  .play-all {
+    padding: 0.4rem 0.9rem;
+    border: 1px solid var(--accent);
+    border-radius: 999px;
+    background: var(--accent);
+    color: var(--accent-fg);
+    font: inherit;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .play-all::before { content: '▶'; margin-inline-end: 0.4rem; font-size: 0.75em; }
+  .play-all[aria-expanded='true']::before { content: '■'; }
+  :global(.play-all-player) { display: block; width: 100%; max-width: 40rem; aspect-ratio: 16 / 9; border: 0; border-radius: var(--radius); margin-block: 0 1.75rem; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1.75rem 1rem; }
   .pager { display: flex; justify-content: space-between; align-items: center; margin-block: 2.5rem 0; color: var(--muted); font-size: 0.875rem; }
   .pager a { padding: 0.5rem 1.1rem; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--fg); text-decoration: none; }
