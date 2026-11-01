@@ -64,6 +64,10 @@ export async function loadReleases(): Promise<Release[]> {
   ].sort((a, b) => b.released.getTime() - a.released.getTime());
 }
 
+export const findReleases = (all: Release[], ids: string[]) =>
+  ids.map((id) => all.find((r) => r.id === id) ?? fail(`content/picks.json: no release with id "${id}"`));
+const fail = (message: string): never => { throw new Error(message); };
+
 // Filter dimensions for the feed: each maps a release to the URL values it can be found under.
 export const facets = {
   country: (r: Release) => [r.artist.data.country.toLowerCase()],

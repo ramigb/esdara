@@ -54,7 +54,7 @@ The YouTube and Spotify players are **embeds**: small windows into those sites. 
 
 ## 8. Where the data comes from: AI and humans
 
-Finding new releases by hand would take forever, so AI models (DeepSeek) help organize public information about artists and releases, and the code itself was written with the help of Claude Opus 5.5.
+Finding new releases by hand would take forever, so AI models help organize public information about artists and releases, and the code itself was written with the help of Claude Opus 5.5.
 
 AI is a powerful helper, but it makes mistakes. That's why every artist page says its information was compiled automatically, why every change is a reviewable pull request, and why anyone can fix an error.
 

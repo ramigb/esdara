@@ -7,6 +7,10 @@ description: "Questions and answers about Esdara: adding your music, where the d
 
 An open-source directory of the latest releases by independent Arabic artists. We link to music on YouTube and Spotify; we don't host any songs. The site is in beta, so expect rough edges.
 
+## What does "independent" mean here?
+
+Esdara leans towards independent music, but not every artist we list is independent in the classic sense: some have record deals, others publishing deals. Our definition of independent is our own, shaped by what Esdara is for and by how we think artists should be able to work today, not by whether they have a contract.
+
 ## How do I add my music?
 
 Every artist, album and song is a Markdown file in [our GitHub repository](https://github.com/ramigb/esdara). Open a pull request as the [contributing guide](https://github.com/ramigb/esdara/blob/main/CONTRIBUTING.md) explains; once merged, your releases appear with the next site update.
@@ -61,4 +65,4 @@ Only if you agree. We use Google Analytics to count visits, and it loads only af
 
 ## Who made Esdara?
 
-[Rami GB](https://www.ramigb.com), on weekend nights, with various AI tools: mostly Claude Opus 5.5, plus DeepSeek for organizing data.
+[Rami GB](https://www.ramigb.com) + Opus and various other agents and tools.

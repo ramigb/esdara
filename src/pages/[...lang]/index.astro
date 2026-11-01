@@ -1,14 +1,17 @@
 ---
 import Base from '../../layouts/Base.astro';
 import Feed from '../../components/Feed.astro';
-import { facetValues, loadReleases, paginate } from '../../data';
+import ReleaseCard from '../../components/ReleaseCard.astro';
+import { facetValues, findReleases, loadReleases, paginate } from '../../data';
 import { facetLabel, href, langPaths, toLang, ui } from '../../i18n';
+import pickIds from '../../../content/picks.json';
 import { contributeUrl } from '../../site';
 
 export const getStaticPaths = langPaths;
 const lang = toLang(Astro.params.lang);
 const all = await loadReleases();
 const pages = paginate(all);
+const picks = findReleases(all, pickIds);
 ---
 
 <Base lang={lang} path="/">
@@ -30,6 +33,14 @@ const pages = paginate(all);
       ))
     }
   </nav>
+  {
+    picks.length > 0 && (
+      <section class="picks" aria-labelledby="picks">
+        <h2 id="picks">{ui[lang].picks}</h2>
+        <div>{picks.map((r) => <ReleaseCard release={r} lang={lang} />)}</div>
+      </section>
+    )
+  }
   <Feed lang={lang} all={all} releases={pages[0]} page={1} pages={pages.length} base="/" />
 </Base>
 
@@ -44,4 +55,8 @@ const pages = paginate(all);
   .browse a { flex: none; padding: 0.3rem 0.8rem; border-radius: 999px; font-size: 0.875rem; text-decoration: none; color: var(--fg); background: var(--line); }
   .browse a:hover, .browse a:focus-visible { background: var(--accent); color: var(--accent-fg); }
   @media (min-width: 40rem) { .browse div { flex-wrap: wrap; } }
+  .picks { margin-block: 2rem 0; }
+  .picks h2 { font-size: 1.25rem; margin: 0 0 1rem; }
+  /* One row of covers that scrolls sideways, so a few picks don't push the latest releases far down. */
+  .picks div { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(150px, 190px); gap: 1rem; overflow-x: auto; padding-block-start: 0.25rem; scrollbar-width: thin; }
 </style>

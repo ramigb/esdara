@@ -44,6 +44,9 @@ Rules that the build won't catch for you:
   English bio in `index.en.md`. No opinions, rankings or politics.
 - Images: only images the artist sent or published under a license that allows reuse, with their permission noted in the PR. Never download photos or cover art from streaming platforms, social media or search results. Square, at least 480×480, under 1 MB. No image is fine: the site shows a generated tile.
 - One artist per PR keeps reviews easy.
+- Don't edit `content/picks.json` (editors' picks on the home page): only the maintainer chooses them, and the
+  Check workflow fails PRs from anyone else that touch it. It lists release ids in display order: an album
+  `<artist>/<album>`, a single `<artist>/singles/<song>`.
 
 ## Changing code
 

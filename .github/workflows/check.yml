@@ -7,6 +7,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with: { fetch-depth: 2 } # the PR's merge commit and its base, to list the changed files
+      # Editors' picks are chosen by the maintainer, so PRs from anyone else may not touch them.
+      - if: github.event.pull_request.user.login != github.repository_owner
+        run: |
+          if git diff --name-only HEAD^1 HEAD | grep -qx content/picks.json; then
+            echo "::error file=content/picks.json::Editors' picks are chosen by the maintainer. Please leave content/picks.json out of your PR."
+            exit 1
+          fi
       - uses: actions/setup-node@v5
         with: { node-version-file: .nvmrc, cache: npm }
       - run: npm ci && npm test && npm run build
