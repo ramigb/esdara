@@ -6,7 +6,7 @@ import type { Lang } from '../i18n';
 const { release, lang } = Astro.props as { release: Release; lang: Lang };
 ---
 
-<div class:list={['cover', !release.cover && `p${release.hue % 3}`]} style={`--hue: ${release.hue}`}>
+<div class:list={['cover', !release.cover && ['ph', `p${release.hue % 3}`]]} style={`--hue: ${release.hue}`}>
   {
     release.cover ? (
       <Image src={release.cover} width={480} height={480} fit="cover" alt="" loading="lazy" />
@@ -29,14 +29,43 @@ const { release, lang } = Astro.props as { release: Release; lang: Lang };
     overflow: hidden;
     display: grid;
     place-items: center;
-    background: var(--pattern, none) 0 0 / 44px, linear-gradient(135deg, hsl(var(--hue) 55% 42%), hsl(calc(var(--hue) + 40) 60% 22%));
     box-shadow: 0 1px 2px rgb(0 0 0 / 0.12);
   }
-  /* Placeholder tiles get one of three geometric line patterns (star, circles, lattice), picked per artist. */
-  .p0 { --pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' fill='none' stroke='white' stroke-opacity='.16'%3E%3Cpath d='M12 12h16v16H12zM20 8.7 31.3 20 20 31.3 8.7 20z'/%3E%3C/svg%3E"); }
-  .p1 { --pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' fill='none' stroke='white' stroke-opacity='.14'%3E%3Ccircle cx='20' cy='20' r='20'/%3E%3Ccircle r='20'/%3E%3Ccircle cx='40' r='20'/%3E%3Ccircle cy='40' r='20'/%3E%3Ccircle cx='40' cy='40' r='20'/%3E%3C/svg%3E"); }
-  .p2 { --pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' fill='none' stroke='white' stroke-opacity='.16'%3E%3Cpath d='M20 0 40 20 20 40 0 20z'/%3E%3Ccircle cx='20' cy='20' r='3'/%3E%3C/svg%3E"); }
   img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  span { font-size: 3.5rem; font-weight: 700; color: rgb(255 255 255 / 0.9); text-shadow: 0 2px 12px rgb(0 0 0 / 0.3); }
-  .eq { position: absolute; inset-block-end: 0.6rem; inset-inline-end: 0.6rem; width: 1.2rem; fill: rgb(255 255 255 / 0.7); }
+
+  /* Generated cover for releases without art: oklch keeps every hue at the same brightness,
+     a soft light from the top, a geometric pattern fading out from one corner, an oversized initial, and grain. */
+  .ph {
+    container-type: inline-size;
+    place-items: end start;
+    background:
+      radial-gradient(circle at 15% 0%, oklch(1 0 0 / 0.22), transparent 55%),
+      linear-gradient(160deg, oklch(0.58 0.14 var(--hue)), oklch(0.3 0.1 calc(var(--hue) + 35)));
+  }
+  .ph::before, .ph::after { content: ''; position: absolute; inset: 0; pointer-events: none; }
+  .ph::before {
+    background: var(--pattern) 0 0 / 22% auto;
+    mask-image: radial-gradient(circle at 100% 0%, #000 0%, transparent 70%);
+  }
+  :global([dir='rtl']) .ph::before { mask-image: radial-gradient(circle at 0% 0%, #000 0%, transparent 70%); }
+  .ph::after {
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    opacity: 0.22;
+    mix-blend-mode: overlay;
+  }
+  .p0 { --pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' fill='none' stroke='white' stroke-opacity='.4'%3E%3Cpath d='M12 12h16v16H12zM20 8.7 31.3 20 20 31.3 8.7 20z'/%3E%3C/svg%3E"); }
+  .p1 { --pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' fill='none' stroke='white' stroke-opacity='.35'%3E%3Ccircle cx='20' cy='20' r='20'/%3E%3Ccircle r='20'/%3E%3Ccircle cx='40' r='20'/%3E%3Ccircle cy='40' r='20'/%3E%3Ccircle cx='40' cy='40' r='20'/%3E%3C/svg%3E"); }
+  .p2 { --pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' fill='none' stroke='white' stroke-opacity='.4'%3E%3Cpath d='M20 0 40 20 20 40 0 20z'/%3E%3Ccircle cx='20' cy='20' r='3'/%3E%3C/svg%3E"); }
+  span {
+    position: relative;
+    font-size: 72cqi;
+    font-weight: 700;
+    line-height: 0.8;
+    margin: 0 0.1em -0.03em;
+    color: oklch(1 0 0 / 0.92);
+    text-shadow: 0 0.04em 0.12em oklch(0 0 0 / 0.25);
+  }
+  /* Arabic letters reach further below the baseline (dots, tails): lift them so they aren't cut off. */
+  :global([dir='rtl']) .ph span { font-size: 62cqi; line-height: 1.15; margin-block-end: 0.1em; }
+  .eq { position: absolute; inset-block-start: 9cqi; inset-inline-end: 9cqi; width: 11cqi; fill: oklch(1 0 0 / 0.75); }
 </style>
