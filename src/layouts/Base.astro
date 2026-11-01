@@ -33,6 +33,7 @@ const footerPages = pages
     <title>{fullTitle}</title>
     <meta name="description" content={description} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="alternate" type="application/rss+xml" title={`${ui[lang].site} · ${ui[lang].latest}`} href={href(lang, '/rss.xml')} />
     {
       noindex ? (
         <meta name="robots" content="noindex" />
@@ -69,7 +70,7 @@ const footerPages = pages
     <main class="wrap"><slot /></main>
     <footer class="wrap">
       <p>{ui[lang].footer}</p>
-      <p>{footerPages.map((p) => <><a href={href(lang, `/${p.slug}/`)}>{p.title}</a> · </>)}<a href={contributeUrl}>{ui[lang].addMusic}</a> · <a href={`mailto:${contactEmail}`}>{ui[lang].contact}</a> · <a href={repo}>{ui[lang].source}</a>{gaId && <> · <button class="cookies" type="button" hidden>{ui[lang].cookieSettings}</button></>}</p>
+      <p>{footerPages.map((p) => <><a href={href(lang, `/${p.slug}/`)}>{p.title}</a> · </>)}<a href={contributeUrl}>{ui[lang].addMusic}</a> · <a href={`mailto:${contactEmail}`}>{ui[lang].contact}</a> · <a href={repo}>{ui[lang].source}</a> · <a href={href(lang, '/rss.xml')}>{ui[lang].rss}</a>{gaId && <> · <button class="cookies" type="button" hidden>{ui[lang].cookieSettings}</button></>}</p>
       <p>{ui[lang].madeBy}<a href="https://www.ramigb.com">Rami GB</a>{ui[lang].credits}</p>
     </footer>
     {
