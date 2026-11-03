@@ -43,10 +43,12 @@ const selects: { name: Facet; any: string }[] = [
 </Base>
 
 <script>
-  import { openIndex } from '../../index-db.ts';
-  import { search } from '../../search.ts';
+  import initSqlJs from 'sql.js';
+  import wasmUrl from 'sql.js/dist/sql-wasm-browser.wasm?url';
+  import { normalize } from '../../normalize';
   import { country, date, href, ui, type Lang } from '../../i18n';
 
+  type Row = Record<string, string | number | null>;
   const $ = <T extends Element>(sel: string, root: ParentNode = document) => root.querySelector<T>(sel)!;
   const form = $<HTMLFormElement>('#search');
   const status = $('#status');
@@ -76,16 +78,45 @@ const selects: { name: Facet; any: string }[] = [
   async function start() {
     status.textContent = t.loading;
     setIndex('loading', t.loading);
-    const rows = await openIndex();
+    const [SQL, bytes] = await Promise.all([
+      initSqlJs({ locateFile: () => wasmUrl }),
+      fetch('/esdara.sqlite').then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(`index: HTTP ${r.status}`)))),
+    ]);
+    const db = new SQL.Database(new Uint8Array(bytes));
     setIndex('ready', t.indexReady);
+    const rows = (sql: string, args: string[]): Row[] => {
+      const stmt = db.prepare(sql);
+      stmt.bind(args);
+      const out: Row[] = [];
+      while (stmt.step()) out.push(stmt.getAsObject());
+      stmt.free();
+      return out;
+    };
 
     function run() {
       const data = Object.fromEntries(new FormData(form)) as Record<string, string>;
       const set = Object.entries(data).filter(([, v]) => v);
       history.replaceState(null, '', set.length ? `?${new URLSearchParams(set)}` : location.pathname);
 
+      const terms = normalize(data.q).split(/\s+/).filter(Boolean);
+      const where = terms.map(() => 'instr(s.search, ?) > 0');
+      const args = [...terms];
+      if (data.country) where.push('lower(s.country) = ?'), args.push(data.country);
+      if (data.genre) where.push('EXISTS (SELECT 1 FROM song_genres g WHERE g.song_id = s.id AND g.genre = ?)'), args.push(data.genre);
+      if (data.service) where.push('EXISTS (SELECT 1 FROM song_links l WHERE l.song_id = s.id AND l.service = ?)'), args.push(data.service);
       // shortcut: first 100 matches, add paging here if people need more
-      const { artists, songs } = search(rows, data);
+      const songs = rows(
+        `SELECT s.*, a.name_ar, a.name_en FROM songs s JOIN artists a ON a.id = s.artist_id
+         ${where.length ? `WHERE ${where.join(' AND ')}` : ''} ORDER BY s.released DESC LIMIT 100`,
+        args,
+      );
+      const artists = terms.length
+        ? rows(
+            `SELECT * FROM artists WHERE ${terms.map(() => 'instr(search, ?) > 0').join(' AND ')}
+             ${data.country ? 'AND lower(country) = ?' : ''} ORDER BY name_en LIMIT 20`,
+            data.country ? [...terms, data.country] : terms,
+          )
+        : [];
 
       $('#artists').replaceChildren(
         ...artists.map((a) => {
