@@ -25,7 +25,7 @@ Not on a fixed schedule. New music is added at irregular times, with help from a
 
 ## Where does the artist information come from?
 
-Most artist pages are compiled automatically, with AI tools, from public sources, so they may contain mistakes. Each artist page says so.
+Songs and channel details from YouTube are fetched through the official [YouTube Data API](https://developers.google.com/youtube/v3) and YouTube's public channel feeds, by our own pipelines built with [Pipo](https://github.com/ramigb/pipo), an open-source pipeline tool. AI tools then organize this public information into artist pages, so they may contain mistakes. Each artist page says so.
 
 ## Why don't artist pages have photos or cover art?
 
