@@ -7,6 +7,7 @@ import { getImage } from 'astro:assets';
 import { getCollection } from 'astro:content';
 import { loadReleases } from '../data';
 import { normalize } from '../normalize';
+import { schema } from '../search.ts';
 
 // Same transforms as Cover.astro and the artist photo, so these URLs reuse the files the pages already ship.
 const thumb = async (src: ImageMetadata | undefined, size: number) =>
@@ -18,17 +19,7 @@ export async function GET() {
   const tmp = mkdtempSync(join(tmpdir(), 'esdara-'));
   const file = join(tmp, 'esdara.sqlite');
   const db = new DatabaseSync(file);
-  db.exec(`
-    CREATE TABLE artists (id TEXT PRIMARY KEY, name_ar TEXT, name_en TEXT, country TEXT, photo TEXT, path TEXT, search TEXT);
-    CREATE TABLE albums (id TEXT PRIMARY KEY, artist_id TEXT, title_ar TEXT, title_en TEXT, released TEXT, path TEXT);
-    CREATE TABLE songs (id TEXT PRIMARY KEY, artist_id TEXT, album_id TEXT, anchor TEXT, title_ar TEXT, title_en TEXT,
-                        released TEXT, country TEXT, cover TEXT, hue INTEGER, path TEXT, search TEXT);
-    CREATE TABLE song_genres (song_id TEXT, genre TEXT);
-    CREATE TABLE song_links (song_id TEXT, service TEXT, url TEXT);
-    CREATE INDEX songs_released ON songs (released DESC);
-    CREATE INDEX song_genres_song ON song_genres (song_id, genre);
-    CREATE INDEX song_links_song ON song_links (song_id, service);
-  `);
+  db.exec(schema);
 
   const day = (d: Date) => d.toISOString().slice(0, 10);
   const artist = db.prepare('INSERT INTO artists VALUES (?, ?, ?, ?, ?, ?, ?)');

@@ -65,6 +65,11 @@ text. The site works without it; only `/search/` loads it, with sql.js (about 30
 for free-text search combined with country, genre and platform filters. Searches are shareable URLs
 (`/search/?q=...&genre=...`).
 
+The same query (`src/search.ts`) is offered to AI agents as a [WebMCP](https://webmachinelearning.github.io/webmcp/)
+tool, `search_music` (`src/webmcp.ts`, loaded on every page). It registers only in browsers that support
+`document.modelContext` and loads the index only when an agent calls it; it returns JSON with page URLs
+and YouTube/Spotify links.
+
 ## Cloudflare free plan constraints
 
 | Limit | How we stay under it |
