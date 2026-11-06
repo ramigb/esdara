@@ -57,7 +57,7 @@ const footerPages = pages
     {image && <meta property="og:image" content={image} />}
     <meta name="twitter:card" content="summary" />
     <Font cssVariable="--font-readex" preload />
-    {jsonLd && <script is:raw type="application/ld+json" set:html={ldJson(jsonLd)} />}
+    {jsonLd && <script type="application/ld+json" set:html={ldJson(jsonLd)} />}
   </head>
   <body>
     <header class="wrap">

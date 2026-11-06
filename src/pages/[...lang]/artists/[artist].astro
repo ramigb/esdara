@@ -210,20 +210,15 @@ const playable = preferred.filter((p) => releases.some((r) => r.songs.some((s) =
   .release :global(.cover) { max-width: 20rem; }
   /* On phones a single is one compact row: small cover beside the title, the track line full-width below.
      .info's contents become grid items so .tracks can span under the cover; the player inside keeps full width. */
-  .release.single { grid-template-columns: 4rem minmax(0, 1fr); gap: 0.4rem 0.9rem; align-items: start; padding-block: 1.25rem; }
-  .release.single .info { display: contents; }
-  .release.single :global(.cover) { grid-row: span 2; max-width: 4rem; }
-  .release.single h2 { font-size: 1.0625rem; }
-  .release.single .meta { margin: 0; }
-  .release.single .tracks { grid-column: 1 / -1; }
-  .release.single .tracks li { padding-block: 0.4rem 0; border-bottom: 0; }
-  .release.single .tracks li::before { content: none; }
-  @media (min-width: 40rem) {
-    .release.single { grid-template-columns: 15rem 1fr; gap: 2rem; padding-block: 2rem; }
-    .release.single .info { display: block; }
-    .release.single :global(.cover) { grid-row: auto; max-width: 20rem; }
-    .release.single h2 { font-size: 1.5rem; }
-    .release.single .meta { margin: 0.25rem 0 1rem; }
+  @media (width < 40rem) {
+    .release.single { grid-template-columns: 4rem minmax(0, 1fr); gap: 0.4rem 0.9rem; align-items: start; padding-block: 1.25rem; }
+    .release.single .info { display: contents; }
+    .release.single :global(.cover) { grid-row: span 2; max-width: 4rem; }
+    .release.single h2 { font-size: 1.0625rem; }
+    .release.single .meta { margin: 0; }
+    .release.single .tracks { grid-column: 1 / -1; }
+    .release.single .tracks li { padding-block: 0.4rem 0; border-bottom: 0; }
+    .release.single .tracks li::before { content: none; }
   }
   h2 { margin: 0; font-size: 1.5rem; line-height: 1.3; }
   .meta { color: var(--muted); margin: 0.25rem 0 1rem; font-size: 0.875rem; }

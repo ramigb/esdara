@@ -6,17 +6,12 @@ import { href, ui, type Lang } from './i18n.ts';
 // Serialized for an inline <script>: escaping < keeps the JSON from ending the script early.
 export const ldJson = (data: object) => JSON.stringify(data).replace(/</g, '\\u003c');
 
-// Home page: lets Google offer a sitelinks search box that uses the site's own search.
+// Home page: tells search engines the site's name.
 export const websiteLd = (site: URL, lang: Lang) => ({
   '@context': 'https://schema.org',
   '@type': 'WebSite',
   name: ui[lang].site,
   url: new URL(href(lang, '/'), site).href,
-  potentialAction: {
-    '@type': 'SearchAction',
-    target: { '@type': 'EntryPoint', urlTemplate: `${new URL(href(lang, '/search/'), site).href}?q={search_term_string}` },
-    'query-input': 'required name=search_term_string',
-  },
 });
 
 // Artist page: the group, then each release — an album (with its track list) or a single recording.

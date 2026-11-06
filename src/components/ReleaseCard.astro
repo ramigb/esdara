@@ -25,11 +25,9 @@ const { release: r, lang } = Astro.props as { release: Release; lang: Lang };
     {r.services.map((s) => (
       <span class="svc" data-service={s} title={services[s][lang]} role="img" aria-label={services[s][lang]}>
         {s === 'youtube' ? (
-          <svg viewBox="0 0 16 16" aria-hidden="true"><rect width="16" height="16" rx="4" fill="var(--service)" /><path d="M6.4 4.9v6.2L11.6 8z" fill="#fff" /></svg>
-        ) : s === 'spotify' ? (
-          <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--service)" /><path d="M4.3 6.7c2.5-.8 5.1-.6 7.4.6M4.6 9.1c2.1-.6 4.3-.5 6.2.5M5 11.4c1.7-.4 3.5-.3 5 .4" fill="none" stroke="#fff" stroke-width="1.1" stroke-linecap="round" /></svg>
+          <svg viewBox="0 0 16 16" aria-hidden="true"><rect width="16" height="16" rx="4" style="fill: var(--service)" /><path d="M6.4 4.9v6.2L11.6 8z" fill="#fff" /></svg>
         ) : (
-          <span class="dot" />
+          <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" style="fill: var(--service)" /><path d="M4.3 6.7c2.5-.8 5.1-.6 7.4.6M4.6 9.1c2.1-.6 4.3-.5 6.2.5M5 11.4c1.7-.4 3.5-.3 5 .4" fill="none" stroke="#fff" stroke-width="1.1" stroke-linecap="round" /></svg>
         )}
       </span>
     ))}
@@ -63,6 +61,5 @@ const { release: r, lang } = Astro.props as { release: Release; lang: Lang };
   }
   .svc { display: inline-flex; align-items: center; flex: none; }
   .svc svg { width: 0.95rem; height: 0.95rem; display: block; }
-  .dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--service); flex: none; }
   .svc:first-of-type { margin-inline-start: 0.2rem; }
 </style>

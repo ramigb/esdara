@@ -74,7 +74,7 @@ export const ui = {
     // "+N more releases" on cards that stand in for an artist's older releases; +N isolated left-to-right, or RTL shows it as "3+".
     more: (n: number) =>
       `\u2066+${n}\u2069 ` +
-      ({ zero: 'إصدار آخر', one: 'إصدار آخر', two: 'إصداران آخران', few: 'إصدارات أخرى', many: 'إصدارًا آخر', other: 'إصدارًا آخر' })[
+      ({ zero: 'إصدار آخر', one: 'إصدار آخر', two: 'إصداران آخران', few: 'إصدارات أخرى', many: 'إصدارًا آخر', other: 'إصدار آخر' })[
         new Intl.PluralRules('ar').select(n)
       ],
     inferred: 'جُمعت معلومات هذه الصفحة آليًا من مصادر عامة، وقد تحتوي على أخطاء.',

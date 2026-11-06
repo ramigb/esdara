@@ -5,13 +5,12 @@ import type { Release } from './data.ts';
 
 const site = new URL('https://esdara.org');
 
-test('websiteLd: SearchAction points at the language-prefixed /search/?q=', () => {
+test('websiteLd: site name and language-prefixed home URL', () => {
   const ar = websiteLd(site, 'ar');
   assert.equal(ar['@type'], 'WebSite');
   assert.equal(ar.name, 'إصدارة');
   assert.equal(ar.url, 'https://esdara.org/');
-  assert.equal(ar.potentialAction.target.urlTemplate, 'https://esdara.org/search/?q={search_term_string}');
-  assert.equal(websiteLd(site, 'en').potentialAction.target.urlTemplate, 'https://esdara.org/en/search/?q={search_term_string}');
+  assert.equal(websiteLd(site, 'en').url, 'https://esdara.org/en/');
 });
 
 const artist = (links: Record<string, string> = {}) =>
