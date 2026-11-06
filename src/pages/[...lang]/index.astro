@@ -3,6 +3,7 @@ import Base from '../../layouts/Base.astro';
 import Feed from '../../components/Feed.astro';
 import ReleaseCard from '../../components/ReleaseCard.astro';
 import { facetValues, findReleases, loadReleases, paginate } from '../../data';
+import { websiteLd } from '../../jsonld';
 import { facetLabel, href, langPaths, toLang, ui } from '../../i18n';
 import pickIds from '../../../content/picks.json';
 import { contributeUrl } from '../../site';
@@ -14,7 +15,7 @@ const pages = paginate(all);
 const picks = findReleases(all, pickIds);
 ---
 
-<Base lang={lang} path="/">
+<Base lang={lang} path="/" jsonLd={websiteLd(Astro.site!, lang)}>
   <h1>{ui[lang].tagline}</h1>
   <p class="lead">{ui[lang].intro}</p>
   <p class="cta">
@@ -50,7 +51,7 @@ const picks = findReleases(all, pickIds);
   .cta a:first-child { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
   .browse { margin-block: 1.75rem 0; display: grid; gap: 0.6rem; }
   /* One row per facet; on narrow screens the row scrolls sideways instead of pushing the feed down. */
-  .browse div { display: flex; align-items: center; gap: 0.4rem; overflow-x: auto; scrollbar-width: none; }
+  .browse div { display: flex; align-items: center; gap: 0.4rem; overflow-x: auto; scrollbar-width: none; min-width: 0; }
   .browse span { flex: none; min-width: 4.5rem; font-size: 0.8125rem; color: var(--muted); }
   .browse a { flex: none; padding: 0.3rem 0.8rem; border-radius: 999px; font-size: 0.875rem; text-decoration: none; color: var(--fg); background: var(--line); }
   .browse a:hover, .browse a:focus-visible { background: var(--accent); color: var(--accent-fg); }

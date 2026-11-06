@@ -1,4 +1,4 @@
-import { genres, type Genre } from './genres';
+import { genres, type Genre } from './genres.ts';
 
 export const langs = ['ar', 'en'] as const;
 export type Lang = (typeof langs)[number];
@@ -71,7 +71,12 @@ export const ui = {
     pageOf: (n: number, total: number) => `صفحة ${n} من ${total}`,
     other: 'English',
     beta: 'تجريبي',
-    more: (n: number) => `\u2066+${n}\u2069 أخرى`, // isolated left-to-right, or RTL shows it as "3+"
+    // "+N more releases" on cards that stand in for an artist's older releases; +N isolated left-to-right, or RTL shows it as "3+".
+    more: (n: number) =>
+      `\u2066+${n}\u2069 ` +
+      ({ zero: 'إصدار آخر', one: 'إصدار آخر', two: 'إصداران آخران', few: 'إصدارات أخرى', many: 'إصدارًا آخر', other: 'إصدارًا آخر' })[
+        new Intl.PluralRules('ar').select(n)
+      ],
     inferred: 'جُمعت معلومات هذه الصفحة آليًا من مصادر عامة، وقد تحتوي على أخطاء.',
     madeBy: 'صنعه ',
     credits: ' + Opus، ووكلاء وأدوات أخرى متنوعة.',
@@ -128,7 +133,7 @@ export const ui = {
     pageOf: (n: number, total: number) => `Page ${n} of ${total}`,
     other: 'العربية',
     beta: 'Beta',
-    more: (n: number) => `+${n} more`,
+    more: (n: number) => `+${n} more release${n === 1 ? '' : 's'}`,
     inferred: 'This page was compiled automatically from public sources and may contain mistakes.',
     madeBy: 'Made by ',
     credits: ' + Opus and various other agents and tools.',

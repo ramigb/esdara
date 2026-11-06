@@ -6,6 +6,7 @@ import Cover from '../../../components/Cover.astro';
 import { loadReleases } from '../../../data';
 import { genres } from '../../../genres';
 import { embeds, preferred } from '../../../embed';
+import { artistLd } from '../../../jsonld';
 import { country, date, href, langPaths, services, toLang, ui } from '../../../i18n';
 import { editUrl, mailto } from '../../../site';
 
@@ -35,7 +36,14 @@ const image = photo && new URL((await getImage({ src: photo, width: 480, height:
 const playable = preferred.filter((p) => releases.some((r) => r.songs.some((s) => embeds(s.data.links).some((e) => e.service === p))));
 ---
 
-<Base lang={lang} title={name[lang]} path={`/artists/${artist.id}/`} description={description} image={image}>
+<Base
+  lang={lang}
+  title={name[lang]}
+  path={`/artists/${artist.id}/`}
+  description={description}
+  image={image}
+  jsonLd={artistLd(artist, releases, new URL(href(lang, `/artists/${artist.id}/`), Astro.site).href, lang)}
+>
   <section class="hero">
     {photo && <Image class="photo" src={photo} width={320} height={320} fit="cover" alt="" />}
     <h1>{name[lang]}</h1>
@@ -70,9 +78,9 @@ const playable = preferred.filter((p) => releases.some((r) => r.songs.some((s) =
 
   {
     releases.map((r) => (
-      <section class="release" id={r.anchor}>
+      <section class:list={['release', { single: r.single }]} id={r.anchor}>
         <Cover release={r} lang={lang} />
-        <div>
+        <div class="info">
           <h2>{r.title[lang]}</h2>
           <p class="meta">
             {r.single ? ui[lang].single : ui[lang].tracks(r.songs.length)} · {date(lang, r.released)}
@@ -200,6 +208,23 @@ const playable = preferred.filter((p) => releases.some((r) => r.songs.some((s) =
   }
   @media (min-width: 40rem) { .release { grid-template-columns: 15rem 1fr; gap: 2rem; } }
   .release :global(.cover) { max-width: 20rem; }
+  /* On phones a single is one compact row: small cover beside the title, the track line full-width below.
+     .info's contents become grid items so .tracks can span under the cover; the player inside keeps full width. */
+  .release.single { grid-template-columns: 4rem minmax(0, 1fr); gap: 0.4rem 0.9rem; align-items: start; padding-block: 1.25rem; }
+  .release.single .info { display: contents; }
+  .release.single :global(.cover) { grid-row: span 2; max-width: 4rem; }
+  .release.single h2 { font-size: 1.0625rem; }
+  .release.single .meta { margin: 0; }
+  .release.single .tracks { grid-column: 1 / -1; }
+  .release.single .tracks li { padding-block: 0.4rem 0; border-bottom: 0; }
+  .release.single .tracks li::before { content: none; }
+  @media (min-width: 40rem) {
+    .release.single { grid-template-columns: 15rem 1fr; gap: 2rem; padding-block: 2rem; }
+    .release.single .info { display: block; }
+    .release.single :global(.cover) { grid-row: auto; max-width: 20rem; }
+    .release.single h2 { font-size: 1.5rem; }
+    .release.single .meta { margin: 0.25rem 0 1rem; }
+  }
   h2 { margin: 0; font-size: 1.5rem; line-height: 1.3; }
   .meta { color: var(--muted); margin: 0.25rem 0 1rem; font-size: 0.875rem; }
   .tracks { margin: 0; padding: 0; list-style: none; counter-reset: track; }

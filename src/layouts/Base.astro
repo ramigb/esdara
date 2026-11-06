@@ -3,6 +3,7 @@ import { Font } from 'astro:assets';
 import { getCollection } from 'astro:content';
 import Logo from '../components/Logo.astro';
 import { dir, href, ui, type Lang } from '../i18n';
+import { ldJson } from '../jsonld';
 import { contactEmail, contributeUrl, gaId, repo } from '../site';
 
 interface Props {
@@ -12,8 +13,9 @@ interface Props {
   description?: string; // search results and link previews; defaults to the site intro
   image?: string; // absolute URL of the link-preview image
   noindex?: boolean; // pages that must stay out of search engines (404)
+  jsonLd?: object; // schema.org data, inlined as application/ld+json
 }
-const { lang, title, path, description = ui[lang].intro, image, noindex } = Astro.props;
+const { lang, title, path, description = ui[lang].intro, image, noindex, jsonLd } = Astro.props;
 const other: Lang = lang === 'ar' ? 'en' : 'ar';
 const url = (l: Lang) => new URL(href(l, path), Astro.site).href;
 const fullTitle = title ? `${title} · ${ui[lang].site}` : `${ui[lang].site} · ${ui[lang].tagline}`;
@@ -55,6 +57,7 @@ const footerPages = pages
     {image && <meta property="og:image" content={image} />}
     <meta name="twitter:card" content="summary" />
     <Font cssVariable="--font-readex" preload />
+    {jsonLd && <script is:raw type="application/ld+json" set:html={ldJson(jsonLd)} />}
   </head>
   <body>
     <header class="wrap">
@@ -164,7 +167,8 @@ const footerPages = pages
   }
   .wrap { max-width: 72rem; margin-inline: auto; padding-inline: 1rem; }
   @media (min-width: 40rem) { .wrap { padding-inline: 2rem; } }
-  header { display: flex; justify-content: space-between; align-items: center; padding-block: 1.25rem; }
+  /* Wrap onto a second line when brand + nav don't fit (small screens, wider Arabic labels). */
+  header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.5rem 1rem; padding-block: 1.25rem; }
   footer { margin-block: 4rem 2rem; padding-block-start: 1.5rem; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.875rem; }
   a { color: var(--accent); }
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
